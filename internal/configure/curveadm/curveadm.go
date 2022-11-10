@@ -48,8 +48,13 @@ const (
 	KEY_AUTO_UPGRADE = "auto_upgrade"
 	KEY_SSH_RETRIES  = "retries"
 	KEY_SSH_TIMEOUT  = "timeout"
+	KEY_CONTROLLER   = "controller"
 
 	WITHOUT_SUDO = " "
+)
+
+const (
+	DEFAULT_CONTROLLER_VALUE = "docker"
 )
 
 type (
@@ -60,6 +65,7 @@ type (
 		AutoUpgrade bool
 		SSHRetries  int
 		SSHTimeout  int
+		Controller  string
 	}
 
 	CurveAdm struct {
@@ -78,6 +84,7 @@ var (
 		AutoUpgrade: true,
 		SSHRetries:  3,
 		SSHTimeout:  10,
+		Controller:  DEFAULT_CONTROLLER_VALUE,
 	}
 
 	SUPPORT_LOG_LEVEL = map[string]bool{
@@ -147,6 +154,10 @@ func parseDefaultsSection(cfg *CurveAdmConfig, defaults map[string]interface{}) 
 				return err
 			}
 			cfg.AutoUpgrade = yes
+
+		// controller
+		case KEY_CONTROLLER:
+			cfg.Controller = v.(string)
 
 		default:
 			return errno.ERR_UNSUPPORT_CURVEADM_CONFIGURE_ITEM.
@@ -234,4 +245,11 @@ func (cfg *CurveAdmConfig) GetSudoAlias() string {
 		return WITHOUT_SUDO
 	}
 	return cfg.SudoAlias
+}
+
+func (cfg *CurveAdmConfig) GetController() string {
+	if len(cfg.Controller) == 0 {
+		cfg.Controller = DEFAULT_CONTROLLER_VALUE
+	}
+	return cfg.Controller
 }

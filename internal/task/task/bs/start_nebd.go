@@ -156,7 +156,7 @@ func NewStartNEBDServiceTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig)
 	hostname := containerName
 	host2addr := fmt.Sprintf("%s:%s", hostname, hc.GetHostname())
 
-	t.AddStep(&step.DockerInfo{
+	t.AddStep(&step.ContainerInfo{
 		Success:     &success,
 		Out:         &out,
 		ExecOptions: curveadm.ExecOptions(),
@@ -167,7 +167,7 @@ func NewStartNEBDServiceTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig)
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.ID}}'",
-		Quiet:       true,
+		Quiet:       false, // quiet and format are incompatible in nerdctl
 		Filter:      fmt.Sprintf("name=%s", containerName),
 		Out:         &containerId,
 		ExecOptions: curveadm.ExecOptions(),
@@ -183,17 +183,29 @@ func NewStartNEBDServiceTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig)
 		Image:       cc.GetContainerImage(),
 		ExecOptions: curveadm.ExecOptions(),
 	})
+	t.AddStep(&step.SetHostname{
+		Hostname: &hostname,
+		ExecOptions: curveadm.ExecOptions(),
+	})
 	t.AddStep(&step.CreateContainer{
 		Image:       cc.GetContainerImage(),
 		AddHost:     []string{host2addr},
 		Envs:        []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
-		Hostname:    hostname,
+		Hostname:    &hostname,
 		Command:     fmt.Sprintf("--role nebd"),
 		Name:        containerName,
 		Pid:         "host",
 		Privileged:  true,
 		Volumes:     getVolumes(cc),
 		Out:         &containerId,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.StartContainer{
+		ContainerId: &containerId,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.WaitContainerUp{
+		ContainerId: &containerId,
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step2InsertClient{
@@ -213,11 +225,6 @@ func NewStartNEBDServiceTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig)
 			ExecOptions:       curveadm.ExecOptions(),
 		})
 	}
-	t.AddStep(&step.StartContainer{
-		ContainerId: &containerId,
-		Out:         &out,
-		ExecOptions: curveadm.ExecOptions(),
-	})
 
 	return t, nil
 }

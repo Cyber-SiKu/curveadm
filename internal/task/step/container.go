@@ -25,13 +25,18 @@
 package step
 
 import (
+	timerContext "context"
+	"fmt"
+	"strings"
+	"time"
+
 	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/pkg/module"
 )
 
 type (
-	DockerInfo struct {
+	ContainerInfo struct {
 		Success *bool
 		Out     *string
 		module.ExecOptions
@@ -55,7 +60,7 @@ type (
 		Devices           []string
 		Entrypoint        string
 		Envs              []string
-		Hostname          string
+		Hostname          *string
 		Init              bool
 		LinuxCapabilities []string
 		Mount             string
@@ -68,6 +73,7 @@ type (
 		SecurityOptions   []string
 		Ulimits           []string
 		Volumes           []Volume
+		Publish			  string
 		Out               *string
 		module.ExecOptions
 	}
@@ -87,7 +93,7 @@ type (
 	}
 
 	RestartContainer struct {
-		ContainerId string
+		ContainerId *string
 		Out         *string
 		module.ExecOptions
 	}
@@ -152,22 +158,28 @@ type (
 		Success     *bool
 		module.ExecOptions
 	}
+
+	WaitContainerUp struct {
+		ContainerId *string
+		Out         *string
+		module.ExecOptions
+	}
 )
 
-func (s *DockerInfo) Execute(ctx *context.Context) error {
-	cli := ctx.Module().DockerCli().DockerInfo()
+func (s *ContainerInfo) Execute(ctx *context.Context) error {
+	cli := ctx.Module().ContainerCli().ContainerInfo()
 	out, err := cli.Execute(s.ExecOptions)
 	return PostHandle(s.Success, s.Out, out, err, errno.ERR_GET_DOCKER_INFO_FAILED)
 }
 
 func (s *PullImage) Execute(ctx *context.Context) error {
-	cli := ctx.Module().DockerCli().PullImage(s.Image)
+	cli := ctx.Module().ContainerCli().PullImage(s.Image)
 	out, err := cli.Execute(s.ExecOptions)
 	return PostHandle(nil, s.Out, out, err, errno.ERR_PULL_IMAGE_FAILED)
 }
 
 func (s *CreateContainer) Execute(ctx *context.Context) error {
-	cli := ctx.Module().DockerCli().CreateContainer(s.Image, s.Command)
+	cli := ctx.Module().ContainerCli().CreateContainer(s.Image, s.Command)
 	for _, host := range s.AddHost {
 		cli.AddOption("--add-host %s", host)
 	}
@@ -180,8 +192,8 @@ func (s *CreateContainer) Execute(ctx *context.Context) error {
 	for _, env := range s.Envs {
 		cli.AddOption("--env %s", env)
 	}
-	if len(s.Hostname) > 0 {
-		cli.AddOption("--hostname %s", s.Hostname)
+	if s.Hostname != nil && len(*s.Hostname) > 0 {
+		cli.AddOption("--hostname %s", *s.Hostname)
 	}
 	if s.Init {
 		cli.AddOption("--init")
@@ -221,19 +233,31 @@ func (s *CreateContainer) Execute(ctx *context.Context) error {
 	for _, volume := range s.Volumes {
 		cli.AddOption("--volume %s:%s", volume.HostPath, volume.ContainerPath)
 	}
+	if len(s.Publish) > 0 {
+		cli.AddOption("--publish %s", s.Publish)
+	}
 
 	out, err := cli.Execute(s.ExecOptions)
+	
+	// In nerdctl, some docker parameters do not support and will alarm, such as:
+	// WARN[0000] Unknown security-opt: "apparmor:unconfined"
+	fmt.Println("create container:", out)
+	outSlice := strings.Split(strings.TrimSuffix(out, "\n"), "\n")
+	if len(outSlice) > 1 {
+		// The last line is containerid
+		out = outSlice[len(outSlice)-1]
+	}
 	return PostHandle(nil, s.Out, out, err, errno.ERR_CREATE_CONTAINER_FAILED)
 }
 
 func (s *StartContainer) Execute(ctx *context.Context) error {
-	cli := ctx.Module().DockerCli().StartContainer(*s.ContainerId)
+	cli := ctx.Module().ContainerCli().StartContainer(*s.ContainerId)
 	out, err := cli.Execute(s.ExecOptions)
 	return PostHandle(s.Success, s.Out, out, err, errno.ERR_START_CONTAINER_FAILED)
 }
 
 func (s *StopContainer) Execute(ctx *context.Context) error {
-	cli := ctx.Module().DockerCli().StopContainer(s.ContainerId)
+	cli := ctx.Module().ContainerCli().StopContainer(s.ContainerId)
 	if s.Time > 0 {
 		cli.AddOption("--time %d", s.Time)
 	}
@@ -243,25 +267,25 @@ func (s *StopContainer) Execute(ctx *context.Context) error {
 }
 
 func (s *RestartContainer) Execute(ctx *context.Context) error {
-	cli := ctx.Module().DockerCli().RestartContainer(s.ContainerId)
+	cli := ctx.Module().ContainerCli().RestartContainer(*s.ContainerId)
 	out, err := cli.Execute(s.ExecOptions)
 	return PostHandle(nil, s.Out, out, err, errno.ERR_RESTART_CONTAINER_FAILED)
 }
 
 func (s *WaitContainer) Execute(ctx *context.Context) error {
-	cli := ctx.Module().DockerCli().WaitContainer(s.ContainerId)
+	cli := ctx.Module().ContainerCli().WaitContainer(s.ContainerId)
 	out, err := cli.Execute(s.ExecOptions)
 	return PostHandle(nil, s.Out, out, err, errno.ERR_WAIT_CONTAINER_STOP_FAILED)
 }
 
 func (s *RemoveContainer) Execute(ctx *context.Context) error {
-	cli := ctx.Module().DockerCli().RemoveContainer(s.ContainerId)
+	cli := ctx.Module().ContainerCli().RemoveContainer(s.ContainerId)
 	out, err := cli.Execute(s.ExecOptions)
 	return PostHandle(s.Success, s.Out, out, err, errno.ERR_REMOVE_CONTAINER_FAILED)
 }
 
 func (s *ListContainers) Execute(ctx *context.Context) error {
-	cli := ctx.Module().DockerCli().ListContainers()
+	cli := ctx.Module().ContainerCli().ListContainers()
 	if len(s.Format) > 0 {
 		cli.AddOption("--format %s", s.Format)
 	}
@@ -280,25 +304,25 @@ func (s *ListContainers) Execute(ctx *context.Context) error {
 }
 
 func (s *ContainerExec) Execute(ctx *context.Context) error {
-	cli := ctx.Module().DockerCli().ContainerExec(*s.ContainerId, s.Command)
+	cli := ctx.Module().ContainerCli().ContainerExec(*s.ContainerId, s.Command)
 	out, err := cli.Execute(s.ExecOptions)
 	return PostHandle(s.Success, s.Out, out, err, errno.ERR_RUN_COMMAND_IN_CONTAINER_FAILED)
 }
 
 func (s *CopyFromContainer) Execute(ctx *context.Context) error {
-	cli := ctx.Module().DockerCli().CopyFromContainer(s.ContainerId, s.ContainerSrcPath, s.HostDestPath)
+	cli := ctx.Module().ContainerCli().CopyFromContainer(s.ContainerId, s.ContainerSrcPath, s.HostDestPath)
 	out, err := cli.Execute(s.ExecOptions)
 	return PostHandle(nil, s.Out, out, err, errno.ERR_COPY_FROM_CONTAINER_FAILED)
 }
 
 func (s *CopyIntoContainer) Execute(ctx *context.Context) error {
-	cli := ctx.Module().DockerCli().CopyIntoContainer(s.HostSrcPath, s.ContainerId, s.ContainerDestPath)
+	cli := ctx.Module().ContainerCli().CopyIntoContainer(s.HostSrcPath, s.ContainerId, s.ContainerDestPath)
 	out, err := cli.Execute(s.ExecOptions)
 	return PostHandle(nil, s.Out, out, err, errno.ERR_COPY_INTO_CONTAINER_FAILED)
 }
 
 func (s *InspectContainer) Execute(ctx *context.Context) error {
-	cli := ctx.Module().DockerCli().InspectContainer(s.ContainerId)
+	cli := ctx.Module().ContainerCli().InspectContainer(s.ContainerId)
 	if len(s.Format) > 0 {
 		cli.AddOption("--format=%s", s.Format)
 	}
@@ -308,7 +332,36 @@ func (s *InspectContainer) Execute(ctx *context.Context) error {
 }
 
 func (s *ContainerLogs) Execute(ctx *context.Context) error {
-	cli := ctx.Module().DockerCli().ContainerLogs(s.ContainerId)
+	cli := ctx.Module().ContainerCli().ContainerLogs(s.ContainerId)
 	out, err := cli.Execute(s.ExecOptions)
 	return PostHandle(s.Success, s.Out, out, err, errno.ERR_GET_CONTAINER_LOGS_FAILED)
+}
+
+func (s *WaitContainerUp) Execute(ctx *context.Context) error {
+	var status string
+	// create context for timeout
+	ctxTimer := timerContext.Background()
+	timeoutSec := s.ExecOptions.ExecTimeoutSec
+	if timeoutSec > 0 {
+		var cancel timerContext.CancelFunc
+		ctxTimer, cancel = timerContext.WithTimeout(ctxTimer, time.Duration(timeoutSec)*time.Second)
+		defer cancel()
+	}
+	for {
+		step := &InspectContainer{
+			ContainerId: *s.ContainerId,
+			Format: "'{{.State.Status}}'",
+			Out: &status,
+			ExecOptions: s.ExecOptions,
+		}
+
+		err := step.Execute(ctx)
+		if err == nil || ctxTimer.Err() == timerContext.DeadlineExceeded {
+			break
+		}
+	}
+	if status != "running" {
+		return errno.ERR_START_CONTAINER_FAILED
+	}
+	return nil
 }

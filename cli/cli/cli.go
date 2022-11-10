@@ -377,6 +377,7 @@ func (curveadm *CurveAdm) ExecOptions() module.ExecOptions {
 		ExecInLocal:    false,
 		ExecSudoAlias:  curveadm.config.GetSudoAlias(),
 		ExecTimeoutSec: curveadm.config.GetTimeout(),
+		ExecController: curveadm.config.GetController(),
 	}
 }
 

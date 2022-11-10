@@ -155,7 +155,7 @@ func (s *step2GetListenPorts) Execute(ctx *context.Context) error {
 		return nil
 	}
 
-	cmd := ctx.Module().DockerCli().ContainerExec(s.containerId, command)
+	cmd := ctx.Module().ContainerCli().ContainerExec(s.containerId, command)
 	out, err := cmd.Execute(s.execOptions)
 	if err != nil {
 		return nil
@@ -186,7 +186,7 @@ func (s *step2GetLeader) Execute(ctx *context.Context) error {
 		URL_CURVEBS_METRIC_LEADER, URL_CURVEFS_METRIC_LEADER)
 	url = fmt.Sprintf(url, dc.GetListenIp(), dc.GetListenDummyPort())
 	command := fmt.Sprintf(COMMAND_CURL_MDS, url)
-	cmd := ctx.Module().DockerCli().ContainerExec(s.containerId, command)
+	cmd := ctx.Module().ContainerCli().ContainerExec(s.containerId, command)
 	out, _ := cmd.Execute(s.execOptions)
 	*s.isLeader = strings.Contains(out, SIGNATURE_LEADER)
 	return nil

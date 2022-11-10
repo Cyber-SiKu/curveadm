@@ -254,6 +254,11 @@ type (
 		Out     *string
 		module.ExecOptions
 	}
+
+	SetHostname struct {
+		Hostname *string
+		module.ExecOptions
+	}
 )
 
 func (s *Sed) Execute(ctx *context.Context) error {
@@ -585,4 +590,19 @@ func (s *Command) Execute(ctx *context.Context) error {
 	cmd := ctx.Module().Shell().Command(s.Command)
 	out, err := cmd.Execute(s.ExecOptions)
 	return PostHandle(s.Success, s.Out, out, err, errno.ERR_RUN_A_BASH_COMMAND_FAILED)
+}
+
+func (s *SetHostname) Execute(ctx *context.Context) error {
+	var tmp string
+	var success bool
+	task := Hostname{
+		Out: &tmp,
+		Success: &success,
+		ExecOptions: s.ExecOptions,
+	}
+	err := task.Execute(ctx)
+	if err == nil {
+		*s.Hostname = tmp
+	}
+	return nil
 }

@@ -60,6 +60,7 @@ log_level = error
 sudo_alias = "sudo"
 timeout = 300
 auto_upgrade = true
+controller = docker
 
 [ssh_connections]
 retries = 3

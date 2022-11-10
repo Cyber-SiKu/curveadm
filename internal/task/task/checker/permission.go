@@ -165,7 +165,7 @@ func NewCheckPermissionTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 		})
 	}
 	// (4) check docker command {exist, permission, running}
-	t.AddStep(&step.DockerInfo{
+	t.AddStep(&step.ContainerInfo{
 		Success:     &success,
 		Out:         &out,
 		ExecOptions: curveadm.ExecOptions(),

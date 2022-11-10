@@ -47,6 +47,7 @@ type (
 		ExecInLocal    bool
 		ExecSudoAlias  string
 		ExecTimeoutSec int
+		ExecController string
 	}
 
 	TimeoutError struct {
@@ -71,8 +72,8 @@ func (m *Module) File() *FileManager {
 	return NewFileManager(m.sshClient)
 }
 
-func (m *Module) DockerCli() *DockerCli {
-	return NewDockerCli(m.sshClient)
+func (m *Module) ContainerCli() *ContainerCli {
+	return NewContainerCli(m.sshClient)
 }
 
 // common utils

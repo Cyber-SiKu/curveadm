@@ -64,7 +64,7 @@ func NewAddTargetTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.ID}} {{.Status}}'",
-		Quiet:       true,
+		Quiet:       false, // quiet and format are incompatible in nerdctl
 		Filter:      fmt.Sprintf("name=%s", DEFAULT_TGTD_CONTAINER_NAME),
 		Out:         &output,
 		ExecOptions: curveadm.ExecOptions(),

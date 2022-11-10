@@ -241,7 +241,7 @@ func NewCreateContainerTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (
 		Command:     fmt.Sprintf("--role %s --args='%s'", role, getArguments(dc)),
 		AddHost:     []string{fmt.Sprintf("%s:127.0.0.1", hostname)},
 		Envs:        getEnvironments(dc),
-		Hostname:    hostname,
+		Hostname:    &hostname,
 		Init:        true,
 		Name:        hostname,
 		Privileged:  true,

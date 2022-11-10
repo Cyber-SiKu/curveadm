@@ -57,7 +57,7 @@ func NewStopTargetDaemonTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task,
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.ID}}'",
-		Quiet:       true,
+		Quiet:       false, // quiet and format are incompatible in nerdctl
 		Filter:      fmt.Sprintf("name=%s", DEFAULT_TGTD_CONTAINER_NAME),
 		Out:         &containerId,
 		ExecOptions: curveadm.ExecOptions(),

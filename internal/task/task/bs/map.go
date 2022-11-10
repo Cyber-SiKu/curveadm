@@ -87,7 +87,7 @@ func NewMapTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task,
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.Status}}'",
-		Quiet:       true,
+		Quiet:       false, // quiet and format are incompatible in nerdctl
 		Filter:      fmt.Sprintf("name=%s", containerName),
 		Out:         &out,
 		ExecOptions: curveadm.ExecOptions(),
@@ -114,6 +114,14 @@ func NewMapTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.Task,
 		ContainerId:       &containerId,
 		ContainerDestPath: scriptPath,
 		ExecOptions:       curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.ReplaceEntrypointShellFile{
+		ContainerId: &containerId,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.RestartContainer{
+		ContainerId: &containerId,
+		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.ContainerExec{
 		ContainerId: &containerId,

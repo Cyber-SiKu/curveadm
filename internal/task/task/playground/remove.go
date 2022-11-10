@@ -102,7 +102,7 @@ func NewRemovePlaygroundTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task,
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.ID}}'",
-		Quiet:       true,
+		Quiet:       false, // quiet and format are incompatible in nerdctl
 		Filter:      fmt.Sprintf("name=%s", playground.Name),
 		Out:         &containerId,
 		ExecOptions: execOptions(curveadm),

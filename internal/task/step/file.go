@@ -39,8 +39,10 @@ import (
 )
 
 const (
-	TEMP_DIR       = "/tmp"
-	REGEX_KV_SPLIT = "^(([^%s]+)%s\\s*)([^\\s#]*)" // key: mu[2] value: mu[3]
+	TEMP_DIR              = "/tmp"
+	REGEX_KV_SPLIT        = "^(([^%s]+)%s\\s*)([^\\s#]*)" // key: mu[2] value: mu[3]
+	ENTRYPOINT_SHELL_BACK = "/entrypoint-back.sh"
+	ENTRYPOINT_SHELL      = "/entrypoint.sh"
 )
 
 type (
@@ -84,6 +86,11 @@ type (
 		LocalPath  string
 		module.ExecOptions
 	}
+
+	ReplaceEntrypointShellFile struct {
+		ContainerId *string
+		module.ExecOptions
+	}
 )
 
 func (s *ReadFile) Execute(ctx *context.Context) error {
@@ -94,8 +101,8 @@ func (s *ReadFile) Execute(ctx *context.Context) error {
 	} else {
 		remotePath = utils.RandFilename(TEMP_DIR)
 		// defer ctx.Module().Shell().Remove(remotePath).Execute(module.ExecOptions{})
-		dockerCli := ctx.Module().DockerCli().CopyFromContainer(s.ContainerId, s.ContainerSrcPath, remotePath)
-		_, err := dockerCli.Execute(s.ExecOptions)
+		containerCli := ctx.Module().ContainerCli().CopyFromContainer(s.ContainerId, s.ContainerSrcPath, remotePath)
+		_, err := containerCli.Execute(s.ExecOptions)
 		if err != nil {
 			return errno.ERR_COPY_FROM_CONTAINER_FAILED.E(err)
 		}
@@ -159,7 +166,7 @@ func (s *InstallFile) Execute(ctx *context.Context) error {
 			return errno.ERR_RENAME_FILE_OR_DIRECTORY_FAILED.E(err)
 		}
 	} else {
-		cli := ctx.Module().DockerCli().CopyIntoContainer(remotePath, *s.ContainerId, s.ContainerDestPath)
+		cli := ctx.Module().ContainerCli().CopyIntoContainer(remotePath, *s.ContainerId, s.ContainerDestPath)
 		_, err = cli.Execute(s.ExecOptions)
 		if err != nil {
 			return errno.ERR_COPY_INTO_CONTAINER_FAILED.E(err)
@@ -243,4 +250,11 @@ func (s *SyncFile) Execute(ctx *context.Context) error {
 
 func (s *DownloadFile) Execute(ctx *context.Context) error {
 	return ctx.Module().File().Download(s.RemotePath, s.LocalPath)
+}
+
+func (s *ReplaceEntrypointShellFile) Execute(ctx *context.Context) error {
+	cmd := fmt.Sprintf("cp %s %s", ENTRYPOINT_SHELL_BACK, ENTRYPOINT_SHELL)
+	containerCli := ctx.Module().ContainerCli().ContainerExec(*s.ContainerId, cmd)
+	_, err := containerCli.Execute(s.ExecOptions)
+	return err
 }

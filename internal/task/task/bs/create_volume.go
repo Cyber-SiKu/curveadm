@@ -87,7 +87,7 @@ func NewCreateVolumeTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*t
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.Status}}'",
-		Quiet:       true,
+		Quiet:       false, // quiet and format are incompatible in nerdctl
 		Filter:      fmt.Sprintf("name=%s", containerName),
 		Out:         &out,
 		ExecOptions: curveadm.ExecOptions(),

@@ -77,7 +77,7 @@ func NewStartTargetDaemonTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.Status}}'",
-		Quiet:       true,
+		Quiet:       false, // quiet and format are incompatible in nerdctl
 		Filter:      fmt.Sprintf("name=%s", DEFAULT_TGTD_CONTAINER_NAME),
 		Out:         &status,
 		ExecOptions: curveadm.ExecOptions(),
@@ -93,7 +93,7 @@ func NewStartTargetDaemonTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig
 		Image:       cc.GetContainerImage(),
 		AddHost:     []string{host2addr},
 		Envs:        []string{"LD_PRELOAD=/usr/local/lib/libjemalloc.so"},
-		Hostname:    hostname,
+		Hostname:    &hostname,
 		Command:     fmt.Sprintf("--role nebd"),
 		Name:        containerName,
 		Pid:         "host",

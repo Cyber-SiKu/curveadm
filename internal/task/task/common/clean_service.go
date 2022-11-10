@@ -102,7 +102,7 @@ func (s *step2CleanContainer) Execute(ctx *context.Context) error {
 		return nil
 	}
 
-	cli := ctx.Module().DockerCli().RemoveContainer(s.containerId)
+	cli := ctx.Module().ContainerCli().RemoveContainer(s.containerId)
 	out, err := cli.Execute(s.execOptions)
 
 	// container has removed

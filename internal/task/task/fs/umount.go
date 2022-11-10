@@ -68,8 +68,8 @@ func (s *step2UmountFS) Execute(ctx *context.Context) error {
 	}
 
 	command := fmt.Sprintf("umount %s", configure.GetFSClientMountPath(s.mountPoint))
-	dockerCli := ctx.Module().DockerCli().ContainerExec(s.containerId, command)
-	out, err := dockerCli.Execute(s.curveadm.ExecOptions())
+	containerCli := ctx.Module().ContainerCli().ContainerExec(s.containerId, command)
+	out, err := containerCli.Execute(s.curveadm.ExecOptions())
 	if strings.Contains(out, SIGNATURE_NOT_MOUNTED) {
 		return nil
 	} else if err == nil {
@@ -136,7 +136,7 @@ func NewUmountFSTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, error) 
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.Status}}'",
-		Quiet:       true,
+		Quiet:       false, // quiet and format are incompatible in nerdctl
 		Filter:      fmt.Sprintf("id=%s", containerId),
 		Out:         &status,
 		ExecOptions: curveadm.ExecOptions(),

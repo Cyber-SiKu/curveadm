@@ -88,7 +88,7 @@ func NewRestartServiceTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*
 		Lambda: checkContainerExist(host, role, containerId, &out),
 	})
 	t.AddStep(&step.RestartContainer{
-		ContainerId: containerId,
+		ContainerId: &containerId,
 		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step.Lambda{

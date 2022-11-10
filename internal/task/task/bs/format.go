@@ -193,7 +193,7 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.ID}}'",
-		Quiet:       true,
+		Quiet:       false, // quiet and format are incompatible in nerdctl
 		Filter:      fmt.Sprintf("name=%s", containerName),
 		Out:         &oldContainerId,
 		ExecOptions: curveadm.ExecOptions(),
@@ -250,13 +250,21 @@ func NewFormatChunkfilePoolTask(curveadm *cli.CurveAdm, fc *configure.FormatConf
 		Out:         &containerId,
 		ExecOptions: curveadm.ExecOptions(),
 	})
+	t.AddStep(&step.StartContainer{
+		ContainerId: &containerId,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.WaitContainerUp{
+		ContainerId: &containerId,
+		ExecOptions: curveadm.ExecOptions(),
+	})
 	t.AddStep(&step.InstallFile{
 		ContainerId:       &containerId,
 		ContainerDestPath: formatScriptPath,
 		Content:           &formatScript,
 		ExecOptions:       curveadm.ExecOptions(),
 	})
-	t.AddStep(&step.StartContainer{
+	t.AddStep(&step.RestartContainer{
 		ContainerId: &containerId,
 		ExecOptions: curveadm.ExecOptions(),
 	})

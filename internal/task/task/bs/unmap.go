@@ -26,13 +26,13 @@ import (
 	"fmt"
 	"strings"
 
-	tui "github.com/opencurve/curveadm/internal/tui/common"
 	"github.com/opencurve/curveadm/cli/cli"
 	comm "github.com/opencurve/curveadm/internal/common"
 	"github.com/opencurve/curveadm/internal/errno"
 	"github.com/opencurve/curveadm/internal/task/context"
 	"github.com/opencurve/curveadm/internal/task/step"
 	"github.com/opencurve/curveadm/internal/task/task"
+	tui "github.com/opencurve/curveadm/internal/tui/common"
 	"github.com/opencurve/curveadm/pkg/module"
 )
 
@@ -83,8 +83,8 @@ func (s *step2UnmapImage) Execute(ctx *context.Context) error {
 	}
 
 	command := fmt.Sprintf("curve-nbd unmap cbd:pool/%s_%s_", s.volume, s.user)
-	dockerCli := ctx.Module().DockerCli().ContainerExec(containerId, command)
-	out, err := dockerCli.Execute(s.execOptions)
+	containerCli := ctx.Module().ContainerCli().ContainerExec(containerId, command)
+	out, err := containerCli.Execute(s.execOptions)
 	if err == nil {
 		return nil
 	} else if strings.Contains(out, SIGNATURE_NOT_MAPPED) {
@@ -148,7 +148,7 @@ func NewUnmapTask(curveadm *cli.CurveAdm, v interface{}) (*task.Task, error) {
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.ID}} {{.Status}}'",
-		Quiet:       true,
+		Quiet:       false, // quiet and format are incompatible in nerdctl
 		Filter:      fmt.Sprintf("id=%s", containerId),
 		Out:         &output,
 		ExecOptions: curveadm.ExecOptions(),

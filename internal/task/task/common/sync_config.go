@@ -126,6 +126,14 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task
 	t.AddStep(&step.Lambda{
 		Lambda: checkContainerExist(dc.GetHost(), dc.GetRole(), containerId, &out),
 	})
+	t.AddStep(&step.StartContainer{
+		ContainerId: &containerId,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.WaitContainerUp{
+		ContainerId: &containerId,
+		ExecOptions: curveadm.ExecOptions(),
+	})
 	for _, conf := range layout.ServiceConfFiles {
 		t.AddStep(&step.SyncFile{ // sync service config
 			ContainerSrcId:    &containerId,
@@ -157,6 +165,14 @@ func NewSyncConfigTask(curveadm *cli.CurveAdm, dc *topology.DeployConfig) (*task
 		ContainerDestPath: CURVE_CRONTAB_FILE,
 		Content:           &crontab,
 		ExecOptions:       curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.ReplaceEntrypointShellFile{
+		ContainerId: &containerId,
+		ExecOptions: curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.RestartContainer{
+		ContainerId: &containerId,
+		ExecOptions: curveadm.ExecOptions(),
 	})
 
 	return t, nil

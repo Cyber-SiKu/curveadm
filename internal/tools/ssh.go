@@ -40,8 +40,8 @@ const (
 	TEMPLATE_SCP                    = `scp -P {{.port}} {{or .options ""}} {{.source}} {{.user}}@{{.host}}:{{.target}}`
 	TEMPLATE_SSH_COMMAND            = `ssh {{.user}}@{{.host}} -p {{.port}} {{or .options ""}} {{or .become ""}} {{.command}}`
 	TEMPLATE_SSH_ATTACH             = `ssh -tt {{.user}}@{{.host}} -p {{.port}} {{or .options ""}} {{or .become ""}} {{.command}}`
-	TEMPLATE_COMMAND_EXEC_CONTAINER = `{{.sudo}} docker exec -it {{.container_id}} /bin/bash -c "cd {{.home_dir}}; /bin/bash"`
-	TEMPLATE_LOCAL_EXEC_CONTAINER   = `docker exec -it {{.container_id}} /bin/bash` // FIXME: merge it
+	TEMPLATE_COMMAND_EXEC_CONTAINER = `{{.sudo}} {{.controller}} exec -it {{.container_id}} /bin/bash -c "cd {{.home_dir}}; /bin/bash"`
+	TEMPLATE_LOCAL_EXEC_CONTAINER   = `{{.controller}} exec -it {{.container_id}} /bin/bash` // FIXME: merge it
 )
 
 func prepareOptions(curveadm *cli.CurveAdm, host string, become bool, extra map[string]interface{}) (map[string]interface{}, error) {
@@ -139,6 +139,7 @@ func AttachRemoteContainer(curveadm *cli.CurveAdm, host, containerId, home strin
 		"sudo":         curveadm.Config().GetSudoAlias(),
 		"container_id": containerId,
 		"home_dir":     home,
+		"controller":   curveadm.Config().GetController(),
 	}
 	tmpl := template.Must(template.New("command").Parse(TEMPLATE_COMMAND_EXEC_CONTAINER))
 	buffer := bytes.NewBufferString("")

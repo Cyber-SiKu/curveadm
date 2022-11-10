@@ -282,7 +282,7 @@ func NewMountFSTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.T
 	createfsScript := scripts.SCRIPT_CREATEFS
 	createfsScriptPath := "/client.sh"
 
-	t.AddStep(&step.DockerInfo{
+	t.AddStep(&step.ContainerInfo{
 		Success:     &success,
 		Out:         &out,
 		ExecOptions: curveadm.ExecOptions(),
@@ -293,7 +293,7 @@ func NewMountFSTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.T
 	t.AddStep(&step.ListContainers{
 		ShowAll:     true,
 		Format:      "'{{.Status}}'",
-		Quiet:       true,
+		Quiet:       false, // quiet and format are incompatible in nerdctl
 		Filter:      fmt.Sprintf("name=%s", containerName),
 		Out:         &out,
 		ExecOptions: curveadm.ExecOptions(),
@@ -322,6 +322,10 @@ func NewMountFSTask(curveadm *cli.CurveAdm, cc *configure.ClientConfig) (*task.T
 		Privileged:        true,
 		Out:               &containerId,
 		ExecOptions:       curveadm.ExecOptions(),
+	})
+	t.AddStep(&step.StartContainer{
+		ContainerId: &containerId,
+		ExecOptions: curveadm.ExecOptions(),
 	})
 	t.AddStep(&step2InsertClient{
 		curveadm:    curveadm,
